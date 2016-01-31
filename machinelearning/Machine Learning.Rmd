@@ -1,0 +1,55 @@
+---
+title: "Machine Learning Course Project"
+author: "Teng FENG"
+date: "January 31, 2016"
+output: html_document
+---
+
+### Executive Summary
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. The goal of the project is to predict the manner in which they did the exercise. 
+
+### Load the data
+```{r}
+rm(list = ls())
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "pml-testing.csv")
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+```
+
+### Cleaning the data
+Remove the first 7 columns which are not necessary for the analysis and all the columns containing NA or "".
+```{r}
+training <- subset(training, select = -c(1:7))
+training <- training[, apply(training, 2, function(x)!any(is.na(x) | x == ""))]
+```
+
+### Modeling the data
+
+Fisrt we need to create data partition.
+```{r}
+library(caret)
+set.seed(12345)
+inTrain <- createDataPartition(y = training$classe, p = .7, list = F)
+training1 <- training[inTrain,]
+testing1 <- training[-inTrain,]
+```
+
+Now we apply the Random Forest with 5 fold cross validation.
+```{r}
+Mod <- train(classe ~., method = "rf", data = training1, trControl = trainControl(method = ("cv"), number = 5))
+```
+
+Testing the model on testing1
+```{r}
+pred <- predict(Mod, newdata = testing1)
+confusionMatrix(pred, testing1$classe)
+```
+
+The accuracy is 98.95% and the OOS Error Rate is 1.05%.
+
+### Testing the model on "testing"
+```{r}
+pred1 <- predict(Mod, newdata = testing)
+pred1
+```
